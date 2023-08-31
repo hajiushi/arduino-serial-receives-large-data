@@ -1,0 +1,47 @@
+/*
+Arduino-UNO-Serial receives lots of data, baud rate is 115200. 
+Use PC to send no more than 1800 bytes data to Arduino UNO, 
+then Arduino UNO sends all received data to PC.
+*/
+
+#define NUM 1800         //maximum number of received data
+unsigned char rxd[NUM];  //define the receive array in RAM
+int rxnum=0;             //array index
+
+void setup() 
+{
+  Serial.begin(115200);
+}
+void loop() 
+{
+  if(Serial.available()>0)  //if arduino received data
+  {
+    //**************************************************************************
+    int k=0;    //timeout flag
+    while(1)    //a fake cycle
+    {
+      int n=Serial.read();  //read one byte data to n
+      if(n>=0&&rxnum<NUM)   //n>=0 denotes one data has been read
+      {
+        rxd[rxnum++]=n;     //save the data into the receive array
+        k=0;   //clean flag
+      }
+      else     //n must be -1(type int32), indicates no data has been read
+      {
+        k++;
+        if(k>1000)break;//transmission is over if no data been read for a long time, then quit the cycle
+      }
+    }
+    //**************************************************************************
+    for(int w=0;w<rxnum;w++)Serial.write(rxd[w]);    //send all received data to PC
+
+    //**************************************************************************
+    memset(rxd,'\0',rxnum);  //clean the receive array
+    if(rxnum>=NUM)   //you may send too much data than NUM
+    {
+      delay(1000);   //wait a moment so that PC can end sending data
+      while(Serial.read() >= 0);  //clean RX buffer
+    }
+    rxnum=0;    //clean the index
+   }
+}
